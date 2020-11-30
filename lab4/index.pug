@@ -1,0 +1,41 @@
+doctype html
+head
+	meta(charset="UTF-8")
+	title model_lab4
+body
+	h1 параметры моделирования
+	form(method="post", action="/calculate")
+		p Генератор заявок (равномерное распредение)
+		label(for="a") a:
+		input(name="a" id="a" type="number" placeholder="input a")
+		label(for="b") b:
+		input(name="b" id="b" type="number" placeholder="input b")
+		p Обслуживающий аппарат (пуассоновское распредение)
+		label(for="lambda") &lambda;:
+		input(name="lambda" id="lambda" type="number" placeholder="input λ")
+		p Параметры системы
+		label(for="request_quantity") количество заявок:
+		input(name="request_quantity" id="request_quantity" type="number" placeholder="количество заявок")
+		label(for="reentry_probability") вероятность повторной обработки:
+		input(name="reentry_probability" id="reentry_probability" type="number" placeholder="вероятность повторной обработки")
+		label(for="delta_t") &#916;t:
+		input(name="delta_t" id="delta_t" type="number" placeholder="Δt")
+		button(type="submit") моделировать
+	h1 результат моделирования
+	table
+		tr
+			th
+			th принцип &#916;t
+			th событийный принцип
+		tr
+			td количество обработанных заявок
+			td #{quantity_t}
+			td #{quantity_e}
+		tr
+			td количество повторно обработанных заявок
+			td #{reenter_t}
+			td #{reenter_e}
+		tr
+			td максимальная длина очереди за время моделирования
+			td #{queue_t}
+			td #{queue_e}
