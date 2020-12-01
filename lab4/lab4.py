@@ -1,6 +1,8 @@
 import numpy.random as rand
 import math
 
+decimals = 4
+
 def getPoisson(lambda_p):
 	L = math.exp(-lambda_p)
 	p = rand.uniform(0, 1)
@@ -12,11 +14,11 @@ def getPoisson(lambda_p):
 
 
 def getUniform(a, b):
-	return round(rand.uniform(a, b), 5)
+	return round(rand.uniform(a, b), decimals)
 
 def is_in(value, array):
 	for i in range(len(array)):
-		if (abs(value - array[i]) < 0.00000001):
+		if (abs(value - array[i]) < 0.000001):
 			return i
 	return -1
 
@@ -30,7 +32,8 @@ class Model:
 		self.delta_t = body.delta_t
 		self.t0 = body.t0
 		self.tn = body.tn
-		self.maxqueuelength = 0
+		self.maxqueuelength_t = 0
+		self.maxqueuelength_e = 0
 		self.requests = []
 		self.services = []
 
@@ -56,38 +59,42 @@ class Model:
 		while (curt < self.tn):
 			if (is_in(curt, requests_copy) != -1):
 				self.queue_t += 1
+				if (self.maxqueuelength_t < self.queue_t):
+					self.maxqueuelength_t = self.queue_t
 			service_index = is_in(curt, self.services)
 			if (service_index != -1):
-				self.queue_t -= 1
-				self.quantity_t += 1
-				if (rand.uniform(0, 1) > self.reentry_probability):
-					self.queue_t+= 1
-					requests_copy.append(float(curt + getPoisson(self.lambda_p)))
-					requests_copy.sort()
+				if (self.queue_t > 0):
+					self.queue_t -= 1
+					self.quantity_t += 1
+					if (rand.uniform(0, 1) < self.reentry_probability):
+						self.queue_t += 1
+						requests_copy.append(float(curt + getPoisson(self.lambda_p)))
+						requests_copy.sort()
 			curt += self.delta_t
-		print(requests_copy)
-		print(requests_copy[0])
 
 	def event_modeling(self):
 		requests_copy = self.requests[:]
 		services_copy = self.services[:]
-		print(requests_copy)
-		print(services_copy)
 		curt = self.t0
-		while (curt < self.tn and len(requests_copy) > 0 and len(services_copy) > 0):
-			if (requests_copy[0] <= services_copy[0]):
+		while (curt < self.tn):
+			if ((len(requests_copy) > 0) or (len(requests_copy) > 0) and (len(services_copy) > 0) and (requests_copy[0] <= services_copy[0])):
 				self.queue_e += 1
+				if (self.maxqueuelength_e < self.queue_e):
+					self.maxqueuelength_e = self.queue_e
 				curt = requests_copy[0]
 				requests_copy.pop(0)
-			else: #(requests_copy[0] > services_copy[0])
-				self.queue_e -= 1
-				self.quantity_e += 1
-				if (rand.uniform(0, 1) > self.reentry_probability):
-					self.queue_e+= 1
-					requests_copy.append(float(curt + getPoisson(self.lambda_p)))
-					requests_copy.sort()
+			elif ((len(services_copy) > 0) or (len(requests_copy) > 0) and (len(services_copy) > 0) and (requests_copy[0] > services_copy[0])):
+				if (self.queue_e > 0):
+					self.queue_e -= 1
+					self.quantity_e += 1
+					if (rand.uniform(0, 1) < self.reentry_probability):
+						self.queue_e += 1
+						requests_copy.append(float(curt + getPoisson(self.lambda_p)))
+						requests_copy.sort()
 				curt = services_copy[0]
 				services_copy.pop(0)
+			else:
+				break
 
 class Params:
 	def __init__(self, a, b, lambda_p, request_quantity, reentry_probability, delta_t, t0, tn):
@@ -100,12 +107,14 @@ class Params:
 		self.t0 = t0
 		self.tn = tn
 
-pars = Params(0, 30, 3, 10, 0, 0.00001, 0, 30)
+pars = Params(0, 50, 3, 500, 0, 0.0001, 0, 50)
 
 m = Model(pars)
 m.generate_requests()
 m.generate_services()
-# m.stepbystep()
+# print(m.requests)
+# print(m.services)
+m.stepbystep()
 m.event_modeling()
-print(m.queue_t, m.quantity_t)
-print(m.queue_e, m.quantity_e)
+print(m.maxqueuelength_t, m.queue_t, m.quantity_t)
+print(m.maxqueuelength_e, m.queue_e, m.quantity_e)
